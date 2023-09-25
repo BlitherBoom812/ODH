@@ -1,9 +1,9 @@
 {
     "manifest_version": 2,
-    "name": "__MSG_appName__",
+    "name": "Online Dictionary Helper - Docx Version",
     "version": "0.9.5",
     "default_locale": "en",
-    "description": "__MSG_appDesc__",
+    "description": "Based on ODH, but revised to store in a microsoft word file.",
     "icons": {
         "16": "img/icon16.png",
         "48": "img/icon48.png",
@@ -16,7 +16,7 @@
         },
         "default_popup": "bg/popup.html"
     },
-    "author": "Zhenyu Huang",
+    "author": "Guoyun Tian",
     "background": {
         "page": "bg/background.html"
     },
