@@ -1,3 +1,5 @@
+我将 AnkiConncect 格式对齐到 Python Docx 格式（后者由我自己定义），使得 ODH 可以将结果保存到 Word docx 文件里。
+
 # 在线词典助手 (含Anki制卡功能)
 
 在线词典助手是一个Chrome插件。用于浏览网页时查询在线词典，并将查询内容显示在单词旁的小弹窗里。该工具同时支持Anki制卡功能(需在Anki上安装**ankiconnect**插件).

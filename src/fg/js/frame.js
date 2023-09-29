@@ -100,11 +100,14 @@ function api_setActionState(result) {
     const { response, params } = result;
     const { nindex, dindex } = params;
 
+    // console.log(result)
+
     const match = document.querySelector(`.odh-addnote[data-nindex="${nindex}"].odh-addnote[data-dindex="${dindex}"]`);
     if (response)
         match.src = getImageSource('good');
-    else
+    else{
         match.src = getImageSource('fail');
+    }
 
     setTimeout(() => {
         match.src = getImageSource('plus');

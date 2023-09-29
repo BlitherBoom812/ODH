@@ -1,3 +1,5 @@
+I aligned the AnkiConnect Format with the Python-Docx format(created by myself), so that I can save the result into a word docx.
+
 # Online Dictionary Helper (with Anki support)
 
 [[中文版说明](README.zh_CN.md)]

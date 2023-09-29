@@ -23,3 +23,17 @@
 
 # for Mac
 .DS_Store
+
+Lib
+
+Scripts
+
+pyvenv.cfg
+
+server.spec
+
+build
+
+words.docx
+
+__pycache__

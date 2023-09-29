@@ -1,13 +1,114 @@
 import http.server
+import os
+import re
 import socketserver
 import json
+import traceback
+
+from bs4 import BeautifulSoup
+from docx import Document
+
+def add_line_to_document(document, document_name, line_text):
+    # 添加一个新的段落到文档末尾
+    document.add_paragraph(line_text)
+
+    # 保存文档
+    document.save(document_name)
+
+
+def match_trans(text):
+
+    # 创建BeautifulSoup对象进行HTML解析
+    soup = BeautifulSoup(text, 'html.parser')
+
+    # 查找包含翻译信息的<span>元素
+    translation_span = soup.find('span', class_='tran')
+
+    if translation_span:
+
+        pos = soup.find('span', class_='pos').text  # 获取词性
+        eng_translation = translation_span.find('span', class_='eng_tran').text  # 获取英文翻译
+        chn_translation = translation_span.find('span', class_='chn_tran').text  # 获取中文翻译
+
+        return pos, eng_translation, chn_translation
+
+    else:
+        # print("未找到翻译部分")
+        return None, None, None
+
+def save_docx(word="", phone="", pos="", eng_trans="", chn_trans=""):
+    
+    pos = str(pos).lower()
+
+    print("save notes:")
+    print(word)
+    print()
+    print(chn_trans)
+
+    # 使用示例
+    desktop_path = "."
+    docx_name = "words.docx"
+    final_data_path = os.path.join(desktop_path, docx_name)
+    line_text = f"{word}    {phone}    {pos}. {chn_trans}"
+
+    if not os.path.exists(final_data_path):
+        Document().save(final_data_path)
+    
+    document = Document(final_data_path)  # 打开已有的文档或创建一个新的文档
+    add_line_to_document(document, docx_name, line_text)
+
+# 创建一个简单的请求处理程序
+def handle_request(request_json):
+    action = request_json['action']
+    # set response
+    if action == "version":
+        message = {
+            "result": ["docx"],
+            "error": None
+        }
+    elif action == "deckNames":
+        message = {
+            "result": ["docx"],
+            "error": None
+        }
+    elif action == "modelNames":
+        message = {
+            "result": ["docx"],
+            "error": None
+        }
+    elif action == "modelFieldNames":
+        message = {
+            "result": ["front", "back", "phone"],
+            "error": None
+        }
+    else:
+        message = {
+            "result": ["docx"],
+            "error": None
+        }
+    # parse data
+    if 'params' in request_json.keys():
+        params = request_json['params']
+        print('params')
+        if 'note' in params.keys():
+            note = params['note']
+            print('note')
+            if 'fields' in note.keys():
+                fields = note['fields']
+                print('fields')
+                if 'front' in fields.keys() and 'back' in fields.keys():
+                    front = fields['front']
+                    back = fields['back']
+                    phone = fields['phone']
+                    pos, eng_trans, chn_trans = match_trans(back)
+                    save_docx(front, phone, pos, eng_trans, chn_trans)
+    return message
 
 
 # 设置服务器的 IP 地址和端口
 host = "localhost"
 port = 8765
 
-# 创建一个简单的请求处理程序
 class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         # 检查请求路径是否为 /
@@ -20,13 +121,19 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             post_data_str = post_data.decode('utf-8')
             # 解析请求数据为 JSON 对象
             post_data_json = json.loads(post_data_str)
-            print(post_data_json)
+
+            print(json.dumps(post_data_json, indent=4, ensure_ascii=False))
+
             try:
-                message = {'hello' : 'python server'}
+                message = handle_request(post_data_json)
                 self.send_response(200)
             except BaseException as e:
+                traceback.print_exc()
                 print(e)
-                message = {'error' : 'invalid json'}
+                message = {
+                    'result': ["docx"],
+                    'error' : 'invalid json'
+                }
                 self.send_response(400)
             # 设置响应的 Content-Type 为 application/json
             self.send_header('Content-type', 'application/json')
@@ -35,13 +142,19 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             # 构建要返回的 JSON 响应
             response = message
             response_json = json.dumps(response)
+            print(f"response: {response_json}")
             
             # 发送响应数据
             self.wfile.write(response_json.encode('utf-8'))
         else:
             self.send_error(404)
-# 创建服务器对象，并指定请求处理程序
-with socketserver.TCPServer((host, port), MyRequestHandler) as server:
-    print(f"Server started at http://{host}:{port}")
-    # 启动服务器，一直运行直到停止
-    server.serve_forever()
+def run_server():
+    with socketserver.TCPServer((host, port), MyRequestHandler) as server:
+        print(f"Server started at http://{host}:{port}")
+        # 启动服务器，一直运行直到停止
+        server.serve_forever()
+
+if __name__ == "__main__":
+    # save_docx("hello", "verb", "greeting", "你好")
+    # 创建服务器对象，并指定请求处理程序
+    run_server()
