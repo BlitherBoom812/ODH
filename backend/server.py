@@ -3,10 +3,20 @@ import os
 import re
 import socketserver
 import json
+import sys
 import traceback
 
 from bs4 import BeautifulSoup
 from docx import Document
+import logging
+
+# 配置日志信息
+logging.basicConfig(filename='app.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='app.log', level=logging.WARNING,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='app.log', level=logging.ERROR,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 def add_line_to_document(document, document_name, line_text):
     # 添加一个新的段落到文档末尾
@@ -33,20 +43,21 @@ def match_trans(text):
         return pos, eng_translation, chn_translation
 
     else:
-        # print("未找到翻译部分")
+        logging.warning("未找到翻译部分")
         return None, None, None
 
 def save_docx(word="", phone="", pos="", eng_trans="", chn_trans=""):
     
     pos = str(pos).lower()
 
-    print("save notes:")
-    print(word)
-    print()
-    print(chn_trans)
+    logging.info("save notes:")
+    logging.info(word)
+    logging.info(phone)
+    logging.info(chn_trans)
 
     # 使用示例
-    desktop_path = "."
+    # desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    desktop_path = '.'
     docx_name = "words.docx"
     final_data_path = os.path.join(desktop_path, docx_name)
     line_text = f"{word}    {phone}    {pos}. {chn_trans}"
@@ -55,7 +66,9 @@ def save_docx(word="", phone="", pos="", eng_trans="", chn_trans=""):
         Document().save(final_data_path)
     
     document = Document(final_data_path)  # 打开已有的文档或创建一个新的文档
-    add_line_to_document(document, docx_name, line_text)
+    add_line_to_document(document, final_data_path, line_text)
+
+    logging.info(f"save notes: {line_text}")
 
 # 创建一个简单的请求处理程序
 def handle_request(request_json):
@@ -89,19 +102,24 @@ def handle_request(request_json):
     # parse data
     if 'params' in request_json.keys():
         params = request_json['params']
-        print('params')
+        logging.info('params')
         if 'note' in params.keys():
             note = params['note']
-            print('note')
+            logging.info('note')
             if 'fields' in note.keys():
                 fields = note['fields']
-                print('fields')
-                if 'front' in fields.keys() and 'back' in fields.keys():
+                logging.info('fields')
+                if 'front' in fields.keys() and 'back' in fields.keys() and 'phone' in fields.keys():
+                    logging.info('front, back and phone')
                     front = fields['front']
                     back = fields['back']
                     phone = fields['phone']
                     pos, eng_trans, chn_trans = match_trans(back)
                     save_docx(front, phone, pos, eng_trans, chn_trans)
+                else:
+                    logging.warning("failed th parse note")
+            else:
+                logging.warning("failed th parse note")
     return message
 
 
@@ -122,14 +140,13 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             # 解析请求数据为 JSON 对象
             post_data_json = json.loads(post_data_str)
 
-            print(json.dumps(post_data_json, indent=4, ensure_ascii=False))
+            # logging.info(json.dumps(post_data_json, indent=4, ensure_ascii=False))
 
             try:
                 message = handle_request(post_data_json)
                 self.send_response(200)
             except BaseException as e:
-                traceback.print_exc()
-                print(e)
+                logging.error(traceback.format_exc() + str(e))
                 message = {
                     'result': ["docx"],
                     'error' : 'invalid json'
@@ -142,7 +159,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             # 构建要返回的 JSON 响应
             response = message
             response_json = json.dumps(response)
-            print(f"response: {response_json}")
+            logging.info(f"response: {response_json}")
             
             # 发送响应数据
             self.wfile.write(response_json.encode('utf-8'))
@@ -150,7 +167,7 @@ class MyRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
 def run_server():
     with socketserver.TCPServer((host, port), MyRequestHandler) as server:
-        print(f"Server started at http://{host}:{port}")
+        logging.info(f"Server started at http://{host}:{port}")
         # 启动服务器，一直运行直到停止
         server.serve_forever()
 
